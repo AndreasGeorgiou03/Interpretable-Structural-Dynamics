@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 requires = [ "hatchling" ]
 
 [project]
-name = "pytorch-lightning-template"
+name = "interpretable-structural-dynamics"
 version = "0.1.0"
 description = "Generic template to bootstrap your PyTorch project"
 authors = [ { name = "Vassilis Sioros", email = "v.sioros@iit.demokritos.gr" } ]

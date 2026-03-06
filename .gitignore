@@ -175,8 +175,8 @@ cython_debug/
 .qodo
 
 # Custom
-/data/
-/models/
+# /data/
+# /models/
 /logs/
 /outputs/
 lightning_logs/
