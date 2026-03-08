@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from excitation import UFunFromSamples
+from project.models.excitation import UFunFromSamples
 
 class PhysicsOnly3DOF(nn.Module):
     def __init__(self, M, K, C, B, t_grid, u_grid, amp=1.0):

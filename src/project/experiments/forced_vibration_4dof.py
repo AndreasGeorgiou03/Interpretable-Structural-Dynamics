@@ -451,21 +451,18 @@ def compute_a1_from_rhs(t, gt, pred1, pred2, pred3, rhs_gt, model1, model2, mode
 
 def plot_x1_v1_a1_three_preds(t, h0, amp, u_fun, model_1, model_2, model_3, dt=0.01, label1="Pred 1",label2="Pred 2",label3="Pred 3",save_path=None):
 
-    print("here1")
     # create the groundtruth trajectory
     gt = generate_trajectory(h0, t, amp, u_fun)
-    print("here2")
+
     # Extract x1, v1
     x1_gt = gt[:, 0].detach().cpu()
     v1_gt = gt[:, 4].detach().cpu()
 
     model_1.amp = amp
     model_1.u_fun = u_fun
-    print("here3")
     pred1 = odeint(model_1, h0, t, method='rk4', options={"step_size" : dt})
     x1_pr1 = pred1[:, 0].detach().cpu()
     v1_pr1 = pred1[:, 4].detach().cpu()
-    print("here4")
 
     model_2.amp = amp
     model_2.u_fun = u_fun
@@ -479,14 +476,9 @@ def plot_x1_v1_a1_three_preds(t, h0, amp, u_fun, model_1, model_2, model_3, dt=0
     x1_pr3 = pred3[:, 0].detach().cpu()
     v1_pr3 = pred3[:, 4].detach().cpu()
 
-    print("here5")
     rhs_gt = make_ground_truth_rhs(amp, u_fun)
 
-    print("here6")
-
     a1_gt, a1_pr1, a1_pr2, a1_pr3 = compute_a1_from_rhs(t, gt, pred1, pred2, pred3, rhs_gt, model_1, model_2, model_3)
-
-    print("here7")
 
     t_cpu = t.detach().cpu()
 
@@ -530,7 +522,6 @@ def plot_x1_v1_a1_three_preds(t, h0, amp, u_fun, model_1, model_2, model_3, dt=0
         plt.savefig(save_path, dpi=250)
 
     # plt.show()
-    print("here8")
     # return groundtruth and predictions in case user needs them
     return gt, pred1, pred2, pred3
 
