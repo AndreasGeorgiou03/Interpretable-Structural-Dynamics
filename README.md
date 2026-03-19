@@ -9,7 +9,7 @@ The overall project is inspired by the paper **Structural Identification with Ph
 - a **physics-informed baseline term**, based on known or assumed structural mechanics,
 - and a **learned discrepancy term**, represented by a neural network.
 
-This codebase follows that general philosophy and extends it into a set of numerical and symbolic experiments on multi-degree-of-freedom structural systems. In particular, the repository studies whether neural ODE models can not only reproduce structural response accurately, but also help recover **interpretable nonlinear laws** from the learned dynamics. :contentReference[oaicite:1]{index=1}
+This codebase follows that general philosophy and extends it into a set of numerical and symbolic experiments on multi-degree-of-freedom structural systems. In particular, the repository studies whether neural ODE models can not only reproduce structural response accurately, but also help recover **interpretable nonlinear laws** from the learned dynamics.
 
 ---
 
