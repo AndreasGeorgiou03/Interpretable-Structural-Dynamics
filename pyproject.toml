@@ -28,6 +28,10 @@ dependencies = [
   "torchmetrics>=1,<1.5",
   "torchvision<=0.21",
   "tqdm>=4.67.1",
+  "pysr",
+  "torchdiffeq",
+  "pysindy",
+  "gdown"
 ]
 
 [tool.hatch.metadata]

@@ -1,22 +1,23 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
-title: pytorch-lightning-template
-message: 'If you use this software, please cite it as below.'
+title: Interpretable Structural Dynamics
+message: "If you use this software, please cite it as below."
 type: software
 authors:
+  - given-names: Andreas
+    family-names: Georgiou
+  - given-names: Christoforos
+    family-names: Rekatsinas
   - given-names: Vassilis
-    family-names: Sioros
-    email: v.sioros@iit.demokritos.gr
-    affiliation: NCSR “Demokritos”
-    orcid: 'https://orcid.org/0000-0002-6266-0755'
-repository-code: 'https://github.com/insane-group/pytorch-lightning-template'
-url: 'https://insane-group.github.io/pytorch-lightning-template/'
-abstract: Generic template to bootstrap your PyTorch project
+    family-names: Gkatsis
+repository-code: "https://github.com/insane-group/interpretable-structural-dynamics"
+abstract: "Research code for interpretable structural dynamics using physics-informed neural ordinary differential equations, including free-vibration, forced-vibration, NSD modeling, and symbolic recovery experiments."
 keywords:
-  - template
-  - pytorch
-  - hydra
-  - pytorch-lightning
+  - structural dynamics
+  - physics-informed neural odes
+  - PINODE
+  - system identification
+  - interpretability
+  - symbolic regression
+  - PySR
+  - structural engineering
 license: Apache-2.0
