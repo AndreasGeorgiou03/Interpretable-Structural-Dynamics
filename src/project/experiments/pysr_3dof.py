@@ -9,6 +9,7 @@ from project.models.pinode_linear_3dof import PINODEFuncLinear3DOF
 from project.models.pinode_nsd_3dof import PINODEFuncNSD_3DOF
 from project.models.truth_nsd_3dof import TruthPhaseNSD_3DOF
 from project.models.nsd_net import NSD_Net
+from project.experiments.download_data import ensure_all_earthquakes
 
 
 def model_accel(model, t, x, v):
@@ -72,6 +73,57 @@ def read_at2(filepath):
     acc = acc[:npts]
     return acc.astype(np.float32), dt_file, npts
 
+import numpy as np
+import torch
+
+
+def load_elcentro(path: str,device,dt_sim: float = 1.0 / 256.0):
+
+    data = np.loadtxt(path)
+
+    # El Centro file-specific sampling step if only acceleration is provided
+    dt_ec = 0.02
+
+    if data.ndim == 1:
+        acc_ec = data.astype(np.float32)
+        t_ec = (np.arange(len(acc_ec), dtype=np.float32) * dt_ec)
+    else:
+        t_ec = data[:, 0].astype(np.float32)
+        acc_ec = data[:, 1].astype(np.float32)
+
+    T_end = float(t_ec[-1])
+
+    dt = 1.0 / 256.0
+    t_full = torch.arange(0.0, T_end + dt, dt, device=device)
+
+    u_full_np = np.interp(
+        t_full.detach().cpu().numpy(),
+        t_ec,
+        acc_ec
+    ).astype(np.float32)
+    u_full = torch.tensor(u_full_np, device=device)
+    return t_full, u_full
+
+
+
+def load_kobe(path: str,device,dt_sim: float = 1.0 / 256.0):
+
+    u_file_np, dt_file, npts = read_at2(path)
+
+    T_end = (npts - 1) * dt_file
+    t_file = np.arange(npts, dtype=np.float32) * dt_file
+
+    t_full = torch.arange(0.0, T_end + dt_sim, dt_sim, device=device)
+
+    u_full_np = np.interp(
+        t_full.detach().cpu().numpy(),
+        t_file,
+        u_file_np
+    ).astype(np.float32)
+
+    u_full = torch.tensor(u_full_np, device=device)
+    return t_full, u_full
+
 
 if __name__ == "__main__":
 
@@ -107,31 +159,14 @@ if __name__ == "__main__":
     K_true = 0.97 * K_true  # stiffness is 3% lower than nominal
     C_true = 1.25 * C_true  # damping is 25% higher than nominal
 
-    # Initial conditions (NOTE: use 6-dim states for 3DOF)
+    # Initial conditions (6-dim states for 3DOF)
     h0_4 = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float32, device=device)
 
-    # El Centro excitation: load + resample to dt=1/256
-    data = np.loadtxt("../../../data/elcentro.dat")
-    dt_ec = 0.02
+    elcentro_path, kobe_path = ensure_all_earthquakes()
 
-    if data.ndim == 1:
-        acc_ec = data.astype(np.float32)
-        t_ec = (np.arange(len(acc_ec), dtype=np.float32) * dt_ec)
-    else:
-        t_ec = data[:, 0].astype(np.float32)
-        acc_ec = data[:, 1].astype(np.float32)
-
-    T_end = float(t_ec[-1])
-
-    dt = 1.0 / 256.0
-    t_full = torch.arange(0.0, T_end + dt, dt, device=device)
-
-    u_full_np = np.interp(
-        t_full.detach().cpu().numpy(),
-        t_ec,
-        acc_ec
-    ).astype(np.float32)
-    u_full = torch.tensor(u_full_np, device=device)
+    dt=1.0/256.0
+    # t_full, u_full= load_elcentro(elcentro_path, device, dt)
+    t_full, u_full= load_kobe(kobe_path, device, dt)
 
     T_train_sec = 15.0
     N_train = int(T_train_sec / dt) + 1
@@ -139,37 +174,15 @@ if __name__ == "__main__":
     u_train = u_full[:N_train]
 
 
-    # at2_path = "../../../data/ath.KOBE.KBU000.AT2"
-    # u_file_np, dt_file, npts = read_at2(at2_path)
-
-    # # File's physical timeline (dt_file = 0.01, NPTS=3200 -> ~31.99s)
-    # T_end = (npts - 1) * dt_file
-    # t_file = torch.arange(0.0, T_end + dt_file, dt_file)   # length npts
-
-    # # Paper/integration grid
-    # dt = 1.0 / 256.0
-    # t_full = torch.arange(0.0, T_end + dt, dt, device=device)  # 8193 points
-
-    # # Resample acceleration onto t_full (linear interpolation)
-    # u_full_np = np.interp(t_full.detach().cpu().numpy(),
-    #                       t_file.numpy(),
-    #                       u_file_np).astype(np.float32)
-
-    # u_full = torch.tensor(u_full_np, device=device)
-
-
-    # T_train_sec = 15.0
-    # N_train = int(T_train_sec / dt) + 1
-    # t_train = t_full[:N_train]
-    # u_train = u_full[:N_train]
-
+    t_test, u_test = t_train, u_train
+    amp_test=150
 
     # Load models and run truth trajectory
     model = PINODEFuncLinear3DOF(M, K, C, B)
     true_trajectory = TruthPhaseNSD_3DOF(M_true, K_true, C_true, nsd_force_bilinear)
 
-    true_trajectory.u_fun = UFunFromSamples(t_train, u_train)
-    true_trajectory.amp =120.0
+    true_trajectory.u_fun = UFunFromSamples(t_test, u_test)
+    true_trajectory.amp =amp_test
 
 
     save_path = "../../../models/"
@@ -177,8 +190,8 @@ if __name__ == "__main__":
     save_model_path_nn1 = save_path + "linear_with_forced_vibration_base_model_15sec.pth"
     state = torch.load(save_model_path_nn1, map_location=device, weights_only=True)
     model.load_state_dict(state, strict=False)
-    model.amp = 120.0
-    model.u_fun = UFunFromSamples(t_train, u_train)
+    model.amp = amp_test
+    model.u_fun = UFunFromSamples(t_test, u_test)
 
     nn2 = NSD_Net().to(device)
     model_nsd = PINODEFuncNSD_3DOF(M, K, C, model.mlp, nn2).to(device)
@@ -189,12 +202,12 @@ if __name__ == "__main__":
     model_nsd.load_state_dict(state, strict=False)
     for p in model_nsd.mlp.parameters():
         p.requires_grad = False
-    model_nsd.u_fun = UFunFromSamples(t_train, u_train)
-    model_nsd.amp = 120.0
+    model_nsd.u_fun = UFunFromSamples(t_test, u_test)
+    model_nsd.amp = amp_test
 
 
     with torch.no_grad():
-        traj = odeint(true_trajectory, h0_4, t_train, method="rk4")  # (T,6)
+        traj = odeint(true_trajectory, h0_4, t_test, method="rk4")  # (T,6)
 
 
     # Build dataset: h = truth states, y = NN2 force on DOF1
@@ -218,7 +231,7 @@ if __name__ == "__main__":
             a_vec[:, 0] = a_raw
 
             f_vec = (M @ a_vec.unsqueeze(-1)).squeeze(-1)  # (T,3)
-            f1 = f_vec[:, 0]  # (T,)
+            f1 = f_vec[:, 0]  # (T,)q
 
             y_targets.append(f1.detach().cpu().numpy())
 
@@ -240,6 +253,24 @@ if __name__ == "__main__":
     print("y stats: mean=%.6g std=%.6g min=%.6g max=%.6g" % (
         float(y_all.mean()), float(y_all.std()), float(y_all.min()), float(y_all.max())
     ))
+
+
+    # truth states from trajectory
+    H_all = traj.detach().cpu().numpy() if torch.is_tensor(traj) else np.asarray(traj)
+    x1_all = H_all[:, 0]
+
+    # true NSD force from the analytical equation
+    y_true_eq = -10.0 * np.maximum(np.abs(x1_all) - 0.15, 0.0) * np.sign(x1_all)
+
+    # learned NN force targets
+    y_all_pr = y_targets.detach().cpu().numpy() if torch.is_tensor(y_targets) else np.asarray(y_targets)
+    y_force = np.concatenate(y_all_pr, axis=0)
+
+    mse_true_eq = np.mean((y_true_eq - y_force)**2)
+    rmse_true_eq = np.sqrt(mse_true_eq)
+
+    print("MSE (true equation vs NN-extracted force):", mse_true_eq)
+    print("RMSE (true equation vs NN-extracted force):", rmse_true_eq)
 
     # ALL_NAMES = ["x1", "x2", "x3", "v1", "v2", "v3"]
 
@@ -279,8 +310,8 @@ if __name__ == "__main__":
     # PySR: loss-first settings
     BASE_KW = dict(
         niterations=200,
-        populations=50,
-        population_size=300,
+        populations=80,
+        population_size=350,
         maxsize=10,
         maxdepth=7,
         parsimony=0.0,
